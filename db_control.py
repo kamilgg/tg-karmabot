@@ -23,7 +23,7 @@ class UsersModel:
         cursor.execute('''CREATE TABLE IF NOT EXISTS karma 
                                 (id int,
                                 username text,
-                                karma int,
+                                karma int
                                 )
                                  ''')
         cursor.close()
