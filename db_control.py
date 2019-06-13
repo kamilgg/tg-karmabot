@@ -73,6 +73,7 @@ class KarmaModel:
         cursor = self.connection.cursor()
         cursor.execute("SELECT * FROM karma WHERE username = '%s'" % username)
         user = cursor.fetchone()
+        karma = -1
         if user is None:
             cursor.execute("INSERT INTO karma VALUES (%d, '%s', -1)" % (id, username))
         else:
