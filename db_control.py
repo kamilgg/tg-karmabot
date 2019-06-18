@@ -20,10 +20,10 @@ class UsersModel:
 
     def init_table(self):
         cursor = self.connection.cursor()
-        cursor.execute('''CREATE TABLE IF NOT EXISTS karma 
+        cursor.execute('''CREATE TABLE IF NOT EXISTS karma
                                 (id int,
                                 username text,
-                                karma int,
+                                karma int
                                 )
                                  ''')
         cursor.close()
@@ -36,15 +36,14 @@ class UsersModel:
                 WHERE NOT EXISTS (SELECT * FROM karma WHERE id = %d)''' % (id, username, id))
         self.connection.commit()
 
-    def idofuser(self, username):
+    def id_of_user(self, username):
         cursor = self.connection.cursor()
-        cursor.execute("SELECT * FROM karma WHERE username='%s'" % username)
-        user = cursor.fetchone()
-        if user is None:
+        cursor.execute("SELECT id FROM karma WHERE username='%s'" % username)
+        id = cursor.fetchone()
+        if id is None:
             return 0
         else:
-            id = user[0]
-            return id
+            return id[0]
 
 
 class KarmaModel:
@@ -53,9 +52,8 @@ class KarmaModel:
 
     def current_karma(self, id):
         cursor = self.connection.cursor()
-        cursor.execute("SELECT * FROM karma WHERE id = %d" % id)
-        user = cursor.fetchone()
-        karma = user[2]
+        cursor.execute("SELECT karma FROM karma WHERE id = %d" % id)
+        karma = cursor.fetchone()[0]
         return karma
 
     def karma_plus(self, id, username):
@@ -73,6 +71,7 @@ class KarmaModel:
         cursor = self.connection.cursor()
         cursor.execute("SELECT * FROM karma WHERE username = '%s'" % username)
         user = cursor.fetchone()
+        karma = -1
         if user is None:
             cursor.execute("INSERT INTO karma VALUES (%d, '%s', -1)" % (id, username))
         else:

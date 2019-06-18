@@ -122,7 +122,7 @@ def ban(b):
     if b.chat.id == chatId:
         if b.from_user.id in admins:
             username = str(b.text)[6:]
-            user_id = int(users_model.idofuser(username))
+            user_id = int(users_model.id_of_user(username))
             if user_id == 0:
                 bot.send_message(b.chat.id, text=cantBan)
             else:
@@ -138,7 +138,7 @@ def unban(ub):
     if ub.chat.id == chatId:
         if ub.from_user.id in admins:
             username = str(ub.text)[8:]
-            user_id = int(users_model.idofuser(username))
+            user_id = int(users_model.id_of_user(username))
             if user_id == 0:
                 bot.send_message(ub.chat.id,
                                  text=cantUnban)
