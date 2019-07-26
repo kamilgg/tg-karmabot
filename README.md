@@ -12,7 +12,7 @@ When you reply to a person’s message with the phrase “Thank you” the bot a
 bot.set_webhook(url="your_webhook_url")
 ```
 
-*You can also change all the answers of the bot, which are in the config file. But don't remove the variables **@%s**, **%s** and **%d** in the texts.*
+*You can also change all the answers of the bot, which are in the config file. **But don't remove the variables @%s, %s and %d in the texts.** *
 
 
 ### Installation
