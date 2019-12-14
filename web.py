@@ -1,13 +1,10 @@
 import logging
 import os
-import sys
 from time import sleep
 
 import flask
 import telebot
 from flask import Flask
-
-sys.path.append('./karmabot')
 
 from config import token, bot_name, chat_id, admins, database, host, user, password
 from config import help_text, welcome_text, welcome_user, chat_error, username_error, reply_to_like, like_to_bot, unlike_to_bot, \
@@ -32,15 +29,15 @@ def welcome(w):
             bot.send_message(w.chat.id, text=welcome_user % username)
         else:
             username = str(w.new_chat_member.username)
-            id = int(w.new_chat_member.id)
-            users_model.new_user(id, username)
+            user_id = int(w.new_chat_member.id)
+            users_model.create_new_user(user_id, username)
             bot.send_message(w.chat.id, text=welcome_text % username)
     else:
         bot.send_message(w.chat.id, parse_mode='Markdown', text=chat_error)
 
 
 @bot.message_handler(commands=['help'])
-def help(h):
+def help_message(h):
     if h.chat.id == chat_id:
         bot.send_message(h.chat.id, parse_mode='Markdown', text=help_text)
     else:
@@ -64,8 +61,8 @@ def karma_plus(kp):
                 elif to_user == username:
                     bot.send_message(kp.chat.id, text=masturbate % username)
                 else:
-                    karma_model.karma_plus(user_id, to_user)
-                    karma = karma_model.current_karma(user_id)
+                    karma_model.add_karma(user_id, to_user)
+                    karma = karma_model.get_current_karma(user_id)
                     bot.send_message(kp.chat.id, text=like_message % (to_user, to_user, karma))
     else:
         bot.send_message(kp.chat.id, parse_mode='Markdown', text=chat_error)
@@ -88,8 +85,8 @@ def karma_minus(km):
                 elif to_user == username:
                     bot.send_message(km.chat.id, text=unmasturbate % username)
                 else:
-                    ans = karma_model.karma_minus(user_id, to_user)
-                    karma = karma_model.current_karma(user_id)
+                    ans = karma_model.reduce_karma(user_id, to_user)
+                    karma = karma_model.get_current_karma(user_id)
                     if ans == 1:
                         bot.send_message(km.chat.id, text=unlike_message % (to_user, to_user, karma))
                     elif ans == 2:
@@ -104,7 +101,7 @@ def karma_minus(km):
 @bot.message_handler(commands=['top20'])
 def top20(t20):
     if t20.chat.id == chat_id:
-        bot.send_message(t20.chat.id, parse_mode='Markdown', text=karma_model.top20())
+        bot.send_message(t20.chat.id, parse_mode='Markdown', text=karma_model.get_top20(False))
     else:
         bot.send_message(t20.chat.id, parse_mode='Markdown', text=chat_error)
 
@@ -112,7 +109,7 @@ def top20(t20):
 @bot.message_handler(commands=['untop20'])
 def untop20(ut20):
     if ut20.chat.id == chat_id:
-        bot.send_message(ut20.chat.id, parse_mode='Markdown', text=karma_model.untop20())
+        bot.send_message(ut20.chat.id, parse_mode='Markdown', text=karma_model.get_top20(True))
     else:
         bot.send_message(ut20.chat.id, parse_mode='Markdown', text=chat_error)
 
@@ -122,7 +119,7 @@ def ban(b):
     if b.chat.id == chat_id:
         if b.from_user.id in admins:
             username = str(b.text)[6:]
-            user_id = int(users_model.id_of_user(username))
+            user_id = int(users_model.get_user_id(username))
             if user_id == 0:
                 bot.send_message(b.chat.id, text=cant_ban)
             else:
@@ -138,7 +135,7 @@ def unban(ub):
     if ub.chat.id == chat_id:
         if ub.from_user.id in admins:
             username = str(ub.text)[8:]
-            user_id = int(users_model.id_of_user(username))
+            user_id = int(users_model.get_user_id(username))
             if user_id == 0:
                 bot.send_message(ub.chat.id,
                                  text=cant_unban)
@@ -164,7 +161,7 @@ def index():
 
 
 @server.route("/%s/" % token, methods=['POST'])
-def getMessage():
+def get_message():
     if flask.request.headers.get('content-type') == 'application/json':
         json_string = flask.request.get_data().decode('utf-8')
         update = telebot.types.Update.de_json(json_string)
