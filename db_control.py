@@ -1,4 +1,3 @@
-import os
 import psycopg2
 
 
@@ -20,27 +19,26 @@ class UsersModel:
 
     def init_table(self):
         cursor = self.connection.cursor()
-        cursor.execute('''CREATE TABLE IF NOT EXISTS karma
-                                (id int,
-                                username text,
-                                karma int
-                                )
+        cursor.execute('''CREATE TABLE IF NOT EXISTS users
+                                (id int unique,
+                                username text unique,
+                                karma int)
                                  ''')
         cursor.close()
         self.connection.commit()
 
-    def new_user(self, id, username):
+    def create_new_user(self, user_id, username):
         cursor = self.connection.cursor()
-        cursor.execute('''INSERT INTO karma
-                SELECT %d, '%s', 0
-                WHERE NOT EXISTS (SELECT * FROM karma WHERE id = %d)''' % (id, username, id))
+        cursor.execute('''INSERT INTO users (id, username, karma)
+                VALUES (%d, '%s', 0)
+                ON CONFLICT (id) DO NOTHING''' % (user_id, username, user_id))
         self.connection.commit()
 
-    def id_of_user(self, username):
+    def get_user_id(self, username):
         cursor = self.connection.cursor()
-        cursor.execute("SELECT id FROM karma WHERE username='%s'" % username)
-        id = cursor.fetchone()
-        if id is None:
+        cursor.execute("SELECT id FROM users WHERE username='%s'" % username)
+        user_id = cursor.fetchone()
+        if user_id is None:
             return 0
         else:
             return id[0]
@@ -50,69 +48,56 @@ class KarmaModel:
     def __init__(self, connection):
         self.connection = connection
 
-    def current_karma(self, id):
+    def get_current_karma(self, user_id):
         cursor = self.connection.cursor()
-        cursor.execute("SELECT karma FROM karma WHERE id = %d" % id)
+        cursor.execute("SELECT karma FROM users WHERE id = %d" % user_id)
         karma = cursor.fetchone()[0]
         return karma
 
-    def karma_plus(self, id, username):
+    def add_karma(self, user_id, username):
         cursor = self.connection.cursor()
-        cursor.execute("SELECT * FROM karma WHERE id = %d" % id)
+        cursor.execute("SELECT * FROM users WHERE id = %d" % user_id)
         user = cursor.fetchone()
         if user is None:
-            cursor.execute("INSERT INTO karma VALUES (%d, '%s', 1)" % (id, username))
+            cursor.execute("INSERT INTO users VALUES (%d, '%s', 1)" % (user_id, username))
         else:
             karma = int(user[2]) + 1
-            cursor.execute("UPDATE karma SET karma=%d WHERE id=%d" % (karma, id))
+            cursor.execute("UPDATE users SET karma=%d WHERE id=%d" % (karma, user_id))
         self.connection.commit()
 
-    def karma_minus(self, id, username):
+    def reduce_karma(self, user_id, username):
         cursor = self.connection.cursor()
-        cursor.execute("SELECT * FROM karma WHERE username = '%s'" % username)
+        cursor.execute("SELECT * FROM users WHERE username = '%s'" % username)
         user = cursor.fetchone()
         karma = -1
         if user is None:
-            cursor.execute("INSERT INTO karma VALUES (%d, '%s', -1)" % (id, username))
+            cursor.execute("INSERT INTO users VALUES (%d, '%s', -1)" % (user_id, username))
         else:
             karma = int(user[2]) - 1
-            cursor.execute("UPDATE karma SET karma=%d WHERE id=%d" % (karma, id))
+            cursor.execute("UPDATE users SET karma=%d WHERE id=%d" % (karma, user_id))
         self.connection.commit()
         if karma < -99:
             return 2
         else:
-            return (1)
+            return 1
 
-    def top20(self):
+    def get_top20(self, is_ascending):
         cursor = self.connection.cursor()
-        cursor.execute("SELECT COUNT(*) FROM karma")
+        cursor.execute("SELECT COUNT(*) FROM users")
         count = int(cursor.fetchone()[0])
         if count == 0:
             return "There is no users in database"
         else:
-            if count > 20:
-                count = 20
             top_list = "Top people with positive karma: "
-            cursor.execute("SELECT * FROM karma ORDER BY karma DESC LIMIT 20")
+            if is_ascending:
+                query = "SELECT * FROM users ORDER BY karma LIMIT 20"
+            else:
+                query = "SELECT * FROM users ORDER BY karma DESC LIMIT 20"
+            cursor.execute(query)
             top20 = cursor.fetchall()
-            for i in range(count):
-                top_list += "\n" + str(int(i + 1)) + ". @" + "[" + str(top20[i][1]) + "]" + " with " + str(
-                    top20[i][2]) + " karma"
-            return top_list
-
-    def untop20(self):
-        cursor = self.connection.cursor()
-        cursor.execute("SELECT COUNT(*) FROM karma")
-        count = int(cursor.fetchone()[0])
-        if count == 0:
-            return "There is no users in database"
-        else:
-            if count > 20:
-                count = 20
-            top_list = "Top people with nigative karma: "
-            cursor.execute("SELECT * FROM karma ORDER BY karma LIMIT 20")
-            top20 = cursor.fetchall()
-            for i in range(count):
-                top_list += "\n" + str(int(i + 1)) + ". @" + "[" + str(top20[i][1]) + "]" + " with " + str(
-                    top20[i][2]) + " karma"
+            i = 1
+            for user in top20:
+                top_list += "\n" + str(int(i + 1)) + ". @" + "[" + str(user[1]) + "]" + " with " + str(
+                    user[2]) + " karma"
+                i += 1
             return top_list
