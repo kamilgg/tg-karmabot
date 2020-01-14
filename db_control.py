@@ -41,7 +41,7 @@ class UsersModel:
         if user_id is None:
             return 0
         else:
-            return id[0]
+            return user_id[0]
 
 
 class KarmaModel:
